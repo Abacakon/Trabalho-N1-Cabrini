@@ -1,0 +1,106 @@
+import shlex
+import scapy.all as scapy
+import time
+import os
+from datetime import datetime
+from sklearn import tree
+import numpy as np
+
+logs = []
+
+features = [
+	[60, 5, 53],
+	[68, 3, 123],
+	[1200, 100, 53],
+	[1500, 500, 123],
+	[1400, 200, 53],
+	[70, 10, 53],
+	[2000, 1000, 161]
+]
+labels = [0, 0, 1, 1, 1, 0, 1]
+
+clf = tree.DecisionTreeClassifier()
+clf.fir(features, labels)
+
+packet_count = 0
+last_time =time.time()
+packet_rates = {}
+
+def get_packet_rate(source_ip):
+	currente_time = time.time()
+	if source_ip not in packet_rates:
+		packet_rates[source_ip] = {'count': 1, 'time': current_time}
+		return 1
+	
+	elapsed = current_time-packet_rates[source_ip]['time']
+	if elapsed > 1:
+		rate = packet_rates[source_ip] = {'count': 1, 'time': current_time}
+		return rate
+	else:
+		packet_rates[source_ip]['count'] += 1
+		return None
+
+def analyze_packet(packet):
+	if packet.haslayer(scapy.UDP
+
+		source_ip = packet[scapy.IP].src
+		udp_layer = packet[scapy.UDP]
+
+		packet_size = len(packet)
+		dst_port = udp_layer.dport
+		packet_rate = get_packet_rate(source_ip)
+
+		if packet rate is not None:
+			prediction = clf.predict([[packet_size, packet_rate, dst_port]])
+
+			if prediction[0] == 1
+				reason =f"Padrao suspeito (Tamanho: {packet_size}, Taxa: {packet_rate:.2f}/s, Porta: {dst_port})"
+				log_even(source_ip, "Pacote UDP bloqueado", reason)
+				block_udp_traffic(source_ip)
+			else:
+				log_event(source_ip, "Pacote UDP permitido", "Padrao normal")
+
+
+def block_udp_traffic(source_ip, duration=15):
+	if not source_ip:
+		print("erro")
+	return
+
+	print(f"[*] Bloqueando trafego UDP de {source_ip} por 15 segundos...")
+
+	os.system(f"iptables -A INPUT -p udp -s {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -A OUTPUT -p udp -d {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -A INPUT -p icmp -s {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -A OUTPUT -p icmp -d {shlex.quote (source_ip)} -j DROP")
+
+	time.sleep(duration)
+
+	print ("[*] Restaurando trafego UDP...")
+
+	os.system(f"iptables -D INPUT -p udp -s {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -D OUTPUT -p udp -d {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -D INPUT -p icmp -s {shlex.quote(source_ip)} -j DROP")
+	os.system(f"iptables -D OUTPUT -p icmp -d {shlex.quote(source_ip)} -j DROP")
+
+def log_blocked_packet(source_ip, action, reason):
+	timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+	log_entry = f"[{timestamp}]{action} - Origem: {source_ip}- Razao:{reason}"
+	logs.append(log_entry)
+
+	print(log_entry)
+
+def start_ids(interface="enp0s3"):
+	print(f"[*] iniciando IDS {interface}...")
+	try:
+		scapy.sniff(iface=interface, prn=analyze_packet, store=False)
+	except KeyboardInterrupt:
+		print("\n [*] Encerrando IDS...")
+	finally:
+		with open ("ids_log.txt", "a") as log_file:
+
+			for log_entry in logs:
+				log_file.write(log_entry + "\n")
+	print("[*] Logs armazenados em 'ids_log.txt'.")
+
+if __name__ == "__main__":
+		start_ids()
